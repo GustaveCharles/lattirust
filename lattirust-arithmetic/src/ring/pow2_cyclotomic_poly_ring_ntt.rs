@@ -80,6 +80,24 @@ impl<BaseRing: NttRing<N>, const N: usize> Pow2CyclotomicPolyRingNTT<BaseRing, N
     pub fn ntt_array(&self) -> [BaseRing; N] {
         self.0 .0.data.0[0]
     }
+
+    // Apply negacyclic transposition: [a0, a1, ..., a_{n-1}] -> [a0, -a_{n-1}, -a_{n-2}, ..., -a1]
+    fn transpose_negacyclic(&self) -> Self {
+        let coeffs = self.ntt_array();
+        let mut result = [BaseRing::ZERO; N];
+        
+        result[0] = coeffs[0];
+        for i in 1..N {
+            result[i] = -coeffs[N - i];
+        }
+        
+        Self::from_ntt_array(result)
+    }
+    
+    // Apply negacyclic transposition in-place
+    pub fn transpose_negacyclic_inplace(&mut self) {
+        *self = self.transpose_negacyclic();
+    }
 }
 
 impl<BaseRing: NttRing<N>, const N: usize> Modulus for Pow2CyclotomicPolyRingNTT<BaseRing, N> {
