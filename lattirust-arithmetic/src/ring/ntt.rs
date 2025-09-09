@@ -246,10 +246,15 @@ pub const fn generator<const Q: u64>() -> u64 {
     panic!("no generator found");
 }
 
+//Special case for interoperability with Openfhe
+const fn selected_two_nth_root<const Q: u64, const N: usize>() -> u64 {
+    if Q == 134_215_681 && N == 512 { 78_074 } else { two_nth_primitive_root_of_unity::<Q, N>() }
+}
+
 struct RootOfUnity<const Q: u64, const N: usize> {}
 
 impl<const Q: u64, const N: usize> RootOfUnity<Q, N> {
-    const ROOT_OF_UNITY: u64 = two_nth_primitive_root_of_unity::<Q, N>();
+    const ROOT_OF_UNITY: u64 = selected_two_nth_root::<Q, N>();
     const POWS_ROOT_OF_UNITY_BIT_REVERSED: [Fq<Q>; N] = pows_bit_reversed(Self::ROOT_OF_UNITY);
     const NEG_POWS_ROOT_OF_UNITY_BIT_REVERSED: [Fq<Q>; N] =
         pows_bit_reversed(const_inv_mod::<Q>(Self::ROOT_OF_UNITY));
