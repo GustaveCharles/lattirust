@@ -247,7 +247,7 @@ pub const fn generator<const Q: u64>() -> u64 {
 }
 
 //Special case for interoperability with Openfhe
-const fn selected_two_nth_root<const Q: u64, const N: usize>() -> u64 {
+pub const fn selected_two_nth_root<const Q: u64, const N: usize>() -> u64 {
     if Q == 134_215_681 && N == 512 { 78_074 } else { two_nth_primitive_root_of_unity::<Q, N>() }
 }
 
