@@ -11,8 +11,8 @@ use crate::decomposition::pad_zeros;
 use crate::linear_algebra::{
     ClosedAddAssign, ClosedMulAssign, Matrix, RowVector, SymmetricMatrix, Vector,
 };
-use crate::ring::representatives::WithSignedRepresentative;
-use crate::ring::{PolyRing, Ring};
+use crate::ring::representatives::{SignedRepresentative, WithSignedRepresentative};
+use crate::ring::{PolyRing, Ring, Zq1};
 
 use super::{pad_and_transpose, DecompositionFriendlySignedRepresentative};
 
@@ -24,6 +24,7 @@ pub fn balanced_decomposition_max_length(b: u128, max: BigUint) -> usize {
         max.to_f64().unwrap().log(b as f64).floor() as usize + 1 
     }
 }
+
 
 // standard base-b expansion (repeated Euclidean division) with digit balanced around zero + OpenFHE twist of dropping first digit
 pub fn approximate_decompose_balanced<R>(v: &R, basis: u128, padding_size: Option<usize>) -> Vec<R>
@@ -46,7 +47,7 @@ where
     // approximate gadget decomposition is used; the first digit is ignored
     let mut rem = curr.clone() % b.clone();
     if rem.is_negative() { rem = rem + b.clone(); }
-    let r0 = if rem > b_half_floor.clone() { rem - b.clone() } else { rem };
+    let r0 = if rem >= b_half_floor.clone() { rem - b.clone() } else { rem };
     curr = (curr - r0) / b.clone(); 
 
     // we want a decomposition exactly of size `padding_size`
@@ -55,7 +56,7 @@ where
         for _ in 0..k {
             let mut rem = curr.clone() % b.clone();
             if rem.is_negative() { rem = rem + b.clone(); }
-            let digit = if rem > b_half_floor.clone() { rem - b.clone() } else { rem };
+            let digit = if rem >= b_half_floor.clone() { rem - b.clone() } else { rem };
             decomp_bal_signed.push(R::try_from(digit.clone()).unwrap());
             curr = (curr - digit) / b.clone();
         }
@@ -67,7 +68,7 @@ where
     while !curr.is_zero() {
         let mut rem = curr.clone() % b.clone();
         if rem.is_negative() { rem = rem + b.clone(); }
-        let digit = if rem > b_half_floor.clone() { rem - b.clone() } else { rem };
+        let digit = if rem >= b_half_floor.clone() { rem - b.clone() } else { rem };
 
         decomp_bal_signed.push(R::try_from(digit.clone()).unwrap());
         curr = (curr - digit) / b.clone();
@@ -153,7 +154,7 @@ where
 mod tests {
     use ark_std::test_rng;
 
-    use crate::ring;
+    use crate::ring::{self, Pow2CyclotomicPolyRing};
     use crate::ring::ntt::ntt_prime;
     use crate::ring::pow2_cyclotomic_poly_ring_ntt::Pow2CyclotomicPolyRingNTT;
     use crate::ring::util::powers_of_basis;
@@ -168,7 +169,7 @@ mod tests {
     const BASIS_TEST_RANGE: [u128; 4] = [4, 8, 16, 32];
 
     type R = Zq1<Q>;
-    type PolyR = Pow2CyclotomicPolyRingNTT<R, N>;
+    type PolyR = Pow2CyclotomicPolyRing<R, N>;
 
     fn first_digit_r0<R>(v: &R, b: u128) -> R
     where
@@ -179,7 +180,7 @@ mod tests {
         let bh  = R::SignedRepresentative::try_from((b/2) as i128).unwrap();
         let mut rem = Into::<R::SignedRepresentative>::into(*v) % bs.clone();
         if rem.is_negative() { rem = rem + bs.clone(); }
-        let r0s = if rem > bh { rem - bs } else { rem };
+        let r0s = if rem >= bh { rem - bs } else { rem };
         R::try_from(r0s).unwrap()
     }
 
@@ -275,7 +276,7 @@ mod tests {
 
     #[test]
     fn test_decompose_balanced_polyring() {
-        let v = PolyR::from_coefficient_array(get_test_vec());
+        let v = PolyR::try_from_coefficients(&get_test_vec()).unwrap();
         for b in BASIS_TEST_RANGE {
             let b_half = b / 2;
             let decomp: Vec<PolyR> = approximate_decompose_balanced_polyring(&v, b, None);

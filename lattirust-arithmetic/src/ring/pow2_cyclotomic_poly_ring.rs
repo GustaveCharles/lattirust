@@ -69,23 +69,6 @@ impl<BaseRing: Ring, const N: usize> Pow2CyclotomicPolyRing<BaseRing, N> {
         (Self::from(quotient), Self::from(dividend))
     }
 
-    // Apply negacyclic transposition: [a0, a1, ..., a_{n-1}] -> [a0, -a_{n-1}, -a_{n-2}, ..., -a1]
-    fn transpose_negacyclic(&self) -> Self {
-        let coeffs = self.coefficient_array();
-        let mut result = [BaseRing::ZERO; N];
-        
-        result[0] = coeffs[0];
-        for i in 1..N {
-            result[i] = -coeffs[N - i];
-        }
-        
-        Self::from(result)
-    }
-    
-    // Apply negacyclic transposition in-place
-    pub fn transpose_negacyclic_inplace(&mut self) {
-        *self = self.transpose_negacyclic();
-    }
 }
 
 impl<BaseRing: Ring, const N: usize> From<[BaseRing; N]> for Pow2CyclotomicPolyRing<BaseRing, N> {
@@ -495,4 +478,5 @@ mod test {
     test_polyring!(PR, NUM_TEST_REPETITIONS);
 
     test_conjugation_automorphism!(PR, NUM_TEST_REPETITIONS);
+
 }
